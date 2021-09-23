@@ -1,44 +1,3 @@
-/******************************************************************************/
-/* send_receive.c   Dr. Juan Gonzalez Gomez. January 2009                     */
-/*----------------------------------------------------------------------------*/
-/* Example of Serial communications in Linux.                                 */
-/* Sending and receiving data strings                                         */
-/*----------------------------------------------------------------------------*/
-/* GPL LICENSE                                                                */
-/*----------------------------------------------------------------------------*/
-/* This example sends a ASCII string to the serial port. It waits for the     */
-/* same string to be echoed by another device (For example a microcontroller  */
-/* running an echo-firmware or a wire joining the PC tx and rx pins           */
-/* The received string is print on the screen. If no data is received         */
-/* during the TIMEOUT time, a timeout message is printed                      */
-/*                                                                            */
-/* The serial port speed is configured to 9600 baud                           */
-/*----------------------------------------------------------------------------*/
-/* Example of use:                                                            */
-/*                                                                            */
-/*   ./send_receive /dev/ttyUSB0                                              */
-/*                                                                            */
-/*  The serial device name should be passed as a parameter                    */
-/*  When executing this example, if the echoed data is received the           */
-/*  output will be the following:                                             */
-/*                                                                            */
-/*    String sent------> ASCII Command test                                   */
-/*    String received--> ASCII Command test (18 bytes)                        */
-/*                                                                            */
-/*  If no data is received, the output will be:                               */
-/*    String sent------> ASCII Command test                                   */
-/*    String received--> Timeout!                                             */
-/*                                                                            */
-/*----------------------------------------------------------------------------*/
-/*  In linux, the serial devices names are:                                   */
-/*                                                                            */
-/*    /dev/ttyS0  --> First native serial port                                */
-/*    /dev/ttyS1  --> Second native serial port                               */
-/*    ...                                                                     */
-/*    /dev/ttyUSB0  --> First USB-RS232 converter                             */
-/*    /dev/ttyUSB1  --> Second USB-RS232 converter                            */
-/*    ...                                                                     */
-/******************************************************************************/
 
 #include <termios.h>
 #include <stdio.h>
@@ -55,41 +14,13 @@
 // #define SERIAL_H
 #include <termios.h>
 
-
-/*--------------------------*/
-/* FUNCTION PROTOTYPES      */
-/*--------------------------*/
-
-//int  serial_open(char *serial_name, speed_t baud);
-//void serial_send(int serial_fd, char *data, int size);
-//int  serial_read(int serial_fd, char *data, int size, int timeout_usec);
-//void serial_close(int fd);
-
-
-/******************************************************************************/
-/* Open the serial port                                                       */
-/*----------------------------------------------------------------------------*/
-/* INPUT:                                                                     */
-/*   -serial_name: Serial device name                                         */
-/*   -baud: Serial speed. The constants Bxxxx are used, were xxxx  is the     */ 
-/*          speed. They are defined in termios.h. For example: B9600, B19200..*/
-/*          For more information type "man termios"                           */
-/*                                                                            */
-/* RETURNS:                                                                   */
-/*   -The Serial device descriptor  (-1 if there is an error)                 */
-/******************************************************************************/
 int serial_open(char *serial_name, speed_t baud)
 {
   struct termios newtermios;
   int fd;
 
-  // Open the serial port
   fd = open(serial_name,O_RDWR | O_NOCTTY); 
 
-  // Configure the serial port attributes: 
-  //   -- No parity
-  //   -- 8 data bits
-  //   -- other things...
   newtermios.c_cflag= CBAUD | CS8 | CLOCAL | CREAD;
   newtermios.c_iflag=IGNPAR;
   newtermios.c_oflag=0;
@@ -120,34 +51,11 @@ int serial_open(char *serial_name, speed_t baud)
   return fd;
 }
 
-/*****************************************************/
-/* Sending a string to the serial port.              */
-/*                                                   */
-/* INPUT:                                            */
-/*   -serial_fd: Serial device descriptor            */
-/*   -data:      data string to send                 */
-/*   -size:      data string size                    */
-/*****************************************************/
 void serial_send(int serial_fd, char *data, int size)
 {
   write(serial_fd, data, size);
 }
 
-/*************************************************************************/
-/* Receiving a string from the serial port                               */
-/*-----------------------------------------------------------------------*/
-/* INPUT                                                                 */
-/*   -serial_fd: Serial device descriptor                                */
-/*   -size: Maximum data size to receive                                 */ 
-/*   -timeout_usec: Timeout time (in micro-secs) for receiving the data  */
-/*                                                                       */
-/* OUTPUT:                                                               */
-/*   -data: The serial data received within the timeout_usec time        */
-/*                                                                       */
-/* RETURNS:                                                              */
-/*   -The number of bytes received.                                      */
-/*   -0 if none received. It means a TIMEOUT!                            */
-/*************************************************************************/
 int serial_read(int serial_fd, char *data, int size, int timeout_usec)
 {
   fd_set fds;
@@ -155,10 +63,7 @@ int serial_read(int serial_fd, char *data, int size, int timeout_usec)
   int count=0;
   int ret;
   int n;
-  
-  //-- Wait for the data. A block of size bytes is expected to arrive
-  //-- within the timeout_usec time. This block can be received as 
-  //-- smaller blocks.
+
   do {
       //-- Set the fds variable to wait for the serial descriptor
       FD_ZERO(&fds);
@@ -192,13 +97,6 @@ int serial_read(int serial_fd, char *data, int size, int timeout_usec)
   return count;
 }
 
-
-/********************************************************************/
-/* Close the serial port                                            */
-/*------------------------------------------------------------------*/
-/* INPUT: :                                                         */
-/*   fd: Serial device descriptor                                   */
-/********************************************************************/
 void serial_close(int fd)
 {
   close(fd);

@@ -1,11 +1,4 @@
-/***************************************************************************//**
-*  \file       test_app.c
-*
-*  \details    Userspace application to test the Device driver
-*
-*  \author     EmbeTronicX
-*
-* *******************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,28 +12,18 @@
 #include <time.h>
 
 #define REG_CURRENT_TASK _IOW('a','a',int32_t*)
- 
 #define SIGETX 44
  
-static int done = 0;
-int check = 0;
+static int realizado = 0;
+int revision = 0;
  
-void ctrl_c_handler(int n, siginfo_t *info, void *unused)
-{
-    if (n == SIGINT) {
-        done = 1;
-    }
-}
- 
-void sig_event_handler(int n, siginfo_t *info, void *unused)
-{
-    if (n == SIGETX) {
-        check = info->si_int;
-    }
+void sig_event_handler(int n, siginfo_t *info, void *unused){
+    if (n == SIGETX)
+        revision = info->si_int;
 }
  
 int main(){
-    int fd;
+    int serial_fd;
     int32_t value, number;
     struct sigaction act;
 
@@ -51,100 +34,94 @@ int main(){
     sigaction(SIGETX, &act, NULL);
  
     //se abre el driver instalado
-    fd = open("/dev/etx_device", O_RDWR);
-    if(fd < 0) {
-            printf("Erro no se encuentra instalado el driver...\n");
-            return 0;
+    serial_fd = open("/dev/etx_device", O_RDWR);
+    if(serial_fd < 0) {
+        printf("Erro no se encuentra instalado el driver...\n");
+        return 0;
     }
  
     //se inicia el registro de la senial del kernel
     /* register this task with kernel for signal */
-    if (ioctl(fd, REG_CURRENT_TASK,(int32_t*) &number)) {
+    if (ioctl(serial_fd, REG_CURRENT_TASK,(int32_t*) &number)) {
         printf("Error en el registro buscado\n");
-        close(fd);
+        close(serial_fd);
         exit(1);
     }
     printf("Escuchando...\n");
    
     while(1) {
-	if(check){
-		
-		void *shared_memory;
-		void *shared_memory2;
-		int i, presionado, shmid, shmid2, bool1=0;
+	if(revision){
+		int i, pulsacion, id_memoria, id_memoria2, flag_state=0;
 		time_t now;
-		struct tm *ts;
-		char buf[80];
-
+		struct tm *flag_now_time;
+		char buffer[80];
+		void *memoria_1;
+		void *memoria_2;
 		//se obtiene el tiempo actual, esta es una bandera, se le da el formato
 		now = time(NULL);
-		ts = localtime(&now);
-		strftime(buf, sizeof(buf), "%H:%M:%S", ts);
-		
+		flag_now_time = localtime(&now);
+		strftime(buffer, sizeof(buffer), "%H:%M:%S", flag_now_time);
 		//se lee el 2345 que es la direccion de la memoria
 		//1024 el numero de bites de espacio de memoria
 		//aparta dos porque en uno se guarda la bandera del time 1
 		//y el otro se guarda la bandera el time 2
-		//en las shmid se guarda la clave del segmento de la memoria
-		shmid=shmget((key_t)2345, 1024, 0666);
-		shmid2=shmget((key_t)2346, 1024, 0666);
-		if(shmid2==-1)
-			shmid=shmget((key_t)2346, 1024, 0666|IPC_CREAT);
+		//en las id_memoria se guarda la clave del segmento de la memoria
+		id_memoria=shmget((key_t)2345, 1024, 0666);
+		id_memoria2=shmget((key_t)2346, 1024, 0666);
+		if(id_memoria2==-1)
+			id_memoria=shmget((key_t)2346, 1024, 0666|IPC_CREAT);
 		
-		if(shmid==-1){
-			shmid=shmget((key_t)2345, 1024, 0666|IPC_CREAT);
-			bool1=1;
+		if(id_memoria==-1){
+			id_memoria=shmget((key_t)2345, 1024, 0666|IPC_CREAT);
+			flag_state=1;
 		}
-		
-
-		if(bool1){
-			shared_memory=shmat(shmid,NULL,0); //process attached to shared memory segment
-			presionado = 1;
-			char a[2] ;
-			*a= presionado+'0';
-			strcpy(shared_memory,a);
-			shared_memory2=shmat(shmid2,NULL,0); //process attached to shared memory segment
-			strcpy(shared_memory2,buf);
-			printf("You wrote : %s\n",(char *)shared_memory2);
-		}else{
-			shared_memory=shmat(shmid,NULL,0);
-			shared_memory2=shmat(shmid2,NULL,0);
-			printf("Found: %s\n",(char *)shared_memory2);
-			struct tm tm;
-			strptime(shared_memory2, "%H:%M:%S", &tm);
-			time_t t = mktime(&tm);
-			
-			struct tm tm2;
-			strptime(buf, "%H:%M:%S", &tm2);
-			int sec = tm2.tm_sec - tm.tm_sec;
+		printf("====================================\n");
+		if(!flag_state){
+			struct tm end;
+			struct tm start;
+			memoria_1=shmat(id_memoria,NULL,0);
+			memoria_2=shmat(id_memoria2,NULL,0);
+			printf("Inicio: %s\n",(char *)memoria_2);
+			strptime(memoria_2, "%H:%M:%S", &start);
+			time_t t = mktime(&start);
+			strptime(buffer, "%H:%M:%S", &end);
+			int sec = end.tm_sec - start.tm_sec;
 			printf("Difernecia de Pulsacion = %d\n", sec);
-			
 			if(sec >= 4 || sec < 0){
-				presionado = 1;
-			} else if (sec >= 1){
-				if(strcmp(shared_memory, "1") == 0){
-					presionado = 2;
-				} else if (strcmp(shared_memory, "2") == 0){
-					presionado = 3;
-				} else {
-					presionado = 1;
+				pulsacion = 1;
+			}else if (sec >= 1){
+				if(strcmp(memoria_1, "1") == 0){
+					pulsacion = 2;
+				}else if (strcmp(memoria_1, "2") == 0){
+					pulsacion = 3;
+				}else {
+					pulsacion = 1;
 				}	
 			} else {
 				goto end;
 			}
 			char a[2] ;
-			*a= presionado+'0';
-			strcpy(shared_memory,a);
-			shared_memory2=shmat(shmid2,NULL,0); //process attached to shared memory segment
-			strcpy(shared_memory2,buf);
-			printf("Hora de la pulsacion : %s\n",(char *)shared_memory2);
-
+			*a= pulsacion+'0';
+			strcpy(memoria_1,a);
+			memoria_2=shmat(id_memoria2,NULL,0);
+			strcpy(memoria_2,buffer);
+			printf("Fin: %s\n",(char *)memoria_2);
+		}else{
+			//se obtiene el proces para la memoria 1
+			memoria_1=shmat(id_memoria,NULL,0);
+			pulsacion = 1;
+			char a[2] ;
+			*a= pulsacion+'0';
+			strcpy(memoria_1,a);
+			//se obtiene el proces para la memoria 1
+			memoria_2=shmat(id_memoria2,NULL,0);
+			strcpy(memoria_2,buffer);
+			printf("Hora de la pulsacion: %s\n",(char *)memoria_2);
+			printf("====================================\n");
 		}
 		end:
-		printf("end");	
-		check=!check;
+		revision=!revision;
 	 }
     }
-    printf("Closing Driver\n");
-    close(fd);
+    close(serial_fd);
 }

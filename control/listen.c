@@ -14,7 +14,7 @@ while(1){
 	// el numero del driver, el espacio ocupado
 	shmid=shmget((key_t)2345, 1024, 0666);
 	if(shmid==-1){
-		printf("0\n");
+		printf("Esperando la activacion del messeng\n");
 	}else{
 		memoria_compartida=shmat(shmid,NULL,0);
 		printf("Mensaje %s\n",(char *)memoria_compartida);
