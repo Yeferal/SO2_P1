@@ -1,11 +1,4 @@
-/***************************************************************************//**
-*  \file       test_app.c
-*
-*  \details    Userspace application to test the Device driver
-*
-*  \author     EmbeTronicX
-*
-* *******************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,28 +15,28 @@
  
 #define SIGETX 44
  
-static int done = 0;
-int check = 0;
+static int flag_realizado = 0;
+int flag_check = 0;
  
 void ctrl_c_handler(int n, siginfo_t *info, void *unused)
 {
     if (n == SIGINT) {
         printf("\nrecieved ctrl-c\n");
-        done = 1;
+        flag_realizado = 1;
     }
 }
  
 void sig_event_handler(int n, siginfo_t *info, void *unused)
 {
     if (n == SIGETX) {
-        check = info->si_int;
-        printf ("Received signal from kernel : Value =  %u\n", check);
+        flag_check = info->si_int;
+        printf ("Valor de la Senial recibida del kernel =  %u\n", flag_check);
     }
 }
  
 int main(){
-    int fd;
-    int32_t value, number;
+    int serial_fd;
+    int32_t valor, numero;
     struct sigaction act;
  
     /* install ctrl-c interrupt handler to cleanup at exit */
@@ -59,32 +52,22 @@ int main(){
     sigaction(SIGETX, &act, NULL);
  
  
-    fd = open("/dev/etx_device", O_RDWR);
-    if(fd < 0) {
+    serial_fd = open("/dev/etx_device", O_RDWR);
+    if(serial_fd < 0) {
             return 0;
     }
  
     /* register this task with kernel for signal */
-    if (ioctl(fd, REG_CURRENT_TASK,(int32_t*) &number)) {
-        close(fd);
+    if (ioctl(serial_fd, REG_CURRENT_TASK,(int32_t*) &numero)) {
+        close(serial_fd);
         exit(1);
     }
-    printf("Escuchando (((\n");
+    printf("Escuchando (((...\n");
    
     while(1) {
-	if(check){
-	 
-	 
-		int i;
+	if(flag_check){
+		int i, presionado, shmid, bool1=0;
 		void *shared_memory;
-		void *shared_memory2;
-		int presionado;
-		int shmid;
-		int shmid2;
-
-		int bool1=0;
-
-
 		time_t now;
 		struct tm *ts;
 		char buf[80];
@@ -95,16 +78,11 @@ int main(){
 		ts = localtime(&now);
 		strftime(buf, sizeof(buf), "%H:%M:%S", ts);
 		shmid=shmget((key_t)2345, 1024, 0666);
-		shmid2=shmget((key_t)2346, 1024, 0666);
 		printf("Key of shared memory is %d\n",shmid);
 		if(shmid==-1){
 			shmid=shmget((key_t)2345, 1024, 0666|IPC_CREAT);
 			bool1=1;
 		}
-		if(shmid2==-1){
-			shmid=shmget((key_t)2346, 1024, 0666|IPC_CREAT);
-		}
-
 		if(bool1){
 			shared_memory=shmat(shmid,NULL,0); //process attached to shared memory segment
 			presionado = 1;
@@ -112,18 +90,12 @@ int main(){
 			*a= presionado+'0';
 			strcpy(shared_memory,a);
 			printf("You wrote : %s\n",(char *)shared_memory);
-			shared_memory2=shmat(shmid2,NULL,0); //process attached to shared memory segment
-			strcpy(shared_memory2,buf);
-			printf("You wrote : %s\n",(char *)shared_memory2);
 		}else{
 			shared_memory=shmat(shmid,NULL,0);
-			shared_memory2=shmat(shmid2,NULL,0);
 			printf("Found: %s\n",(char *)shared_memory);
-			printf("Found: %s\n",(char *)shared_memory2);
 			struct tm tm;
-			strptime(shared_memory2, "%H:%M:%S", &tm);
+			strptime(shared_memory, "%H:%M:%S", &tm);
 			time_t t = mktime(&tm);
-			
 			struct tm tm2;
 			strptime(buf, "%H:%M:%S", &tm2);
 			int sec = tm2.tm_sec - tm.tm_sec;
@@ -146,16 +118,12 @@ int main(){
 			*a= presionado+'0';
 			strcpy(shared_memory,a);
 			printf("You wrote : %s\n",(char *)shared_memory);
-			shared_memory2=shmat(shmid2,NULL,0); //process attached to shared memory segment
-			strcpy(shared_memory2,buf);
-			printf("You wrote : %s\n",(char *)shared_memory2);
-
 		}
 		end:
 		printf("end");	
-		check=!check;
+		flag_check=!flag_check;
 	 }
     }
     printf("Closing Driver\n");
-    close(fd);
+    close(serial_fd);
 }

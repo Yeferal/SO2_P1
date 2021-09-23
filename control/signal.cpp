@@ -11,6 +11,10 @@
 #include<sys/shm.h>
 #include <time.h>
 
+#include <iostream>
+
+#include <chrono>
+
 #define REG_CURRENT_TASK _IOW('a','a',int32_t*)
  
 #define SIGETX 44
@@ -37,6 +41,7 @@ void sig_event_handler(int n, siginfo_t *info, void *unused)
 }
  
 int main(){
+	clock_t start, end;       //-- para el temporizador
     int fd;
     int32_t valor, numero;
     struct sigaction act;
@@ -67,7 +72,14 @@ int main(){
     printf("Escuchando (((\n");
    
     while(1) {
+		
 	if(flag_check){
+		int value = 0;
+		start = clock();
+		end = clock();
+		int n;
+		int x = 1;
+
 		int i;
 		void *memoria_compartida_1;
 		void *memoria_compartida_2;
@@ -118,6 +130,9 @@ int main(){
 			int sec = tm2.tm_sec - tm.tm_sec;
 			printf("Execution time = %d\n", sec);
 			
+			value = 1;
+    while(((float)(end - start))<=240.00000000){
+
 			if(sec >= 3 || sec < 0){
 				presionado = 1;
 			} else if (sec >= 0.5){
