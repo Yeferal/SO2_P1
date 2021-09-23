@@ -7,8 +7,8 @@
 int main()
 {
 int i;
-void *shared_memory;
-char buff[100];
+void *memoria_compartida;
+char buffer[100];
 int shmid;
 while(1){
 	// el numero del driver, el espacio ocupado
@@ -16,8 +16,8 @@ while(1){
 	if(shmid==-1){
 		printf("0\n");
 	}else{
-		shared_memory=shmat(shmid,NULL,0);
-		printf("Mensaje %s\n",(char *)shared_memory);
+		memoria_compartida=shmat(shmid,NULL,0);
+		printf("Mensaje %s\n",(char *)memoria_compartida);
 	}
   sleep(1);	
 }
