@@ -1,0 +1,1 @@
+cmd_/home/yefer/Documentos/Proyecto1/driver/driver.ko := ld -r -m elf_x86_64  --build-id=sha1  -T scripts/module.lds -o /home/yefer/Documentos/Proyecto1/driver/driver.ko /home/yefer/Documentos/Proyecto1/driver/driver.o /home/yefer/Documentos/Proyecto1/driver/driver.mod.o;  true
