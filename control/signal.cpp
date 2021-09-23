@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,24 +13,26 @@
 
 #define REG_CURRENT_TASK _IOW('a','a',int32_t*)
  
-#define SIGETX 44 //segmentento de la senial del serial TX
+#define SIGETX 44
  
 static int done = 0;
-int check = 0;
+int flag_check = 0;
  
+
+ //para salir del handler
 void ctrl_c_handler(int n, siginfo_t *info, void *unused)
 {
     if (n == SIGINT) {
-        printf("\nrecieved ctrl-c\n");
+        printf("\nPresiones ctrl+c\n");
         done = 1;
     }
 }
- 
+
 void sig_event_handler(int n, siginfo_t *info, void *unused)
 {
     if (n == SIGETX) {
-        check = info->si_int;
-        printf ("Valor recibido de la senial del Kernel =  %u\n", check);
+        flag_check = info->si_int;
+        printf ("Valor recibido de la senial del kernel =  %u\n", flag_check);
     }
 }
  
@@ -38,19 +41,19 @@ int main(){
     int32_t valor, numero;
     struct sigaction act;
  
-    //Si se recibe una senial de control+c Para iterrumpir la senial
+    /* install ctrl-c interrupt handler to cleanup at exit */
     sigemptyset (&act.sa_mask);
     act.sa_flags = (SA_SIGINFO | SA_RESETHAND);
     act.sa_sigaction = ctrl_c_handler;
     sigaction (SIGINT, &act, NULL);
  
-    //se verifica si esta instalado el handler en el kernel
+    /* install custom signal handler */
     sigemptyset(&act.sa_mask);
     act.sa_flags = (SA_SIGINFO | SA_RESTART);
     act.sa_sigaction = sig_event_handler;
     sigaction(SIGETX, &act, NULL);
  
- 	//el /dev/etx_device es donde se va a esuchar
+ 
     fd = open("/dev/etx_device", O_RDWR);
     if(fd < 0) {
             return 0;
@@ -61,56 +64,52 @@ int main(){
         close(fd);
         exit(1);
     }
-    printf("Escuchando (((...\n");
+    printf("Escuchando (((\n");
    
     while(1) {
-	if(check){
-	 
-
-	 	printf("*************************************************\n");
-	 	printf("Esperando a que se envia una senial\n");
+	if(flag_check){
 		int i;
-		void *memoria_compartida_1, *memoria_compartida_2;
-		int presionado, shmid_1,shmid_2;
-
-		int bool1=0;
+		void *memoria_compartida_1;
+		void *memoria_compartida_2;
+		int presionado, sh_memo_id_1, sh_memo_id_2, flag_state=0;
 
 
 		time_t tiempo_actual;
 		struct tm *ts;
 		char buffer[80];
 
-		//obtenemos el tiempo
+		/* Get the current time */
 		tiempo_actual = time(NULL);
-		
+		/* Format and print the time, "hh:mm:ss" */
 		ts = localtime(&tiempo_actual);
 		strftime(buffer, sizeof(buffer), "%H:%M:%S", ts);
-		shmid=shmget((key_t)2345, 1024, 0666);
-		shmid2=shmget((key_t)2346, 1024, 0666);
-		printf("Key of shared memory is %d\n",shmid);
-		if(shmid==-1){
-			shmid=shmget((key_t)2345, 1024, 0666|IPC_CREAT);
-			bool1=1;
+		sh_memo_id_1=shmget((key_t)2345, 1024, 0666);
+		sh_memo_id_2=shmget((key_t)2346, 1024, 0666);
+		printf("Key of shared memory is %d\n",sh_memo_id_1);
+		if(sh_memo_id_1==-1){
+			sh_memo_id_1=shmget((key_t)2345, 1024, 0666|IPC_CREAT);
+			flag_state=1;
 		}
-		if(shmid2==-1){
-			shmid=shmget((key_t)2346, 1024, 0666|IPC_CREAT);
+		if(sh_memo_id_2==-1){
+			sh_memo_id_1=shmget((key_t)2346, 1024, 0666|IPC_CREAT);
 		}
 
-		if(bool1){
-			memoria_compartida_1=shmat(shmid,NULL,0); //procesos adjuntos de la memoria compartida
+		if(flag_state){
+			memoria_compartida_1=shmat(sh_memo_id_1,NULL,0); //process attached to shared memory segment
 			presionado = 1;
 			char a[2] ;
 			*a= presionado+'0';
 			strcpy(memoria_compartida_1,a);
-			printf("You wrote : %shm_1\n",(char *)memoria_compartida_1);
-			memoria_compartida_2=shmat(sbuffer_1,NULL,0); //process attached to shared memory segment
-			strcpy(memoria_compartida_2,buffer);mem_1			printf("You wrote : %s\n",(char *)memoria_compartida_2);
+			printf("You wrote : %s\n",(char *)memoria_compartida_1);
+			memoria_compartida_2=shmat(sh_memo_id_2,NULL,0); //process attached to shared memory segment
+			strcpy(memoria_compartida_2,buffer);
+			printf("You wrote : %s\n",(char *)memoria_compartida_2);
 		}else{
-			memoria_compartida_1=shmat(sshm_1,NULL,0);
-			memoria_compartida_2=shmat(shmid2,NULL,0);
-			printf("Found: %s\n",(char *)memoria_compartida__1);
+			memoria_compartida_1=shmat(sh_memo_id_1,NULL,0);
+			memoria_compartida_2=shmat(sh_memo_id_2,NULL,0);
+			printf("Found: %s\n",(char *)memoria_compartida_1);
 			printf("Found: %s\n",(char *)memoria_compartida_2);
-			struct tmmemoria__1;
+			struct tm tm;
 			strptime(memoria_compartida_2, "%H:%M:%S", &tm);
 			time_t t = mktime(&tm);
 			
@@ -135,15 +134,15 @@ int main(){
 			char a[2] ;
 			*a= presionado+'0';
 			strcpy(memoria_compartida_1,a);
-			printf("You wrote : %shm_1\n",(char *)memoria_compartida_1);
-			memoria_compartida_2=shmat(sbuffer_1,NULL,0); //process attached to shared memory segment
-			strcpy(memoria_compartida_2,buffer);mem_1			printf("You wrote : %s\n",(char *)memoria_compartida_2);
+			printf("You wrote : %s\n",(char *)memoria_compartida_1);
+			memoria_compartida_2=shmat(sh_memo_id_2,NULL,0); //process attached to shared memory segment
+			strcpy(memoria_compartida_2,buffer);
+			printf("You wrote : %s\n",(char *)memoria_compartida_2);
 
 		}
-		printf("*************************************************\n");
 		end:
 		printf("end");	
-		check=!check;
+		flag_check=!flag_check;
 	 }
     }
     printf("Closing Driver\n");
